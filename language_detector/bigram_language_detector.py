@@ -1,6 +1,4 @@
 ## Author: Anthony Hicks
-## Class : CSCE 4930 - NLP
-## Instr : Eduardo Blanco
 ## Descr : Creates a language model using bigrams and calculates the probablility of a text being in english and spanish, and returns the higher of the two
 
 #!/usr/bin/env python

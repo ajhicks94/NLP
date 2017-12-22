@@ -1,6 +1,4 @@
 ## Author: Anthony Hicks
-## Class : CSCE 4930 - NLP
-## Instr : Eduardo Blanco
 ## Descr : Creates a language model using trigrams and returns whether a text is more likely to be written in english or spanish
 
 #!/usr/bin/env python
