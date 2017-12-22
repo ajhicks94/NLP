@@ -7,9 +7,13 @@
 
 from __future__ import division
 from optparse import OptionParser
-import os, logging, math
+from collections import defaultdict
+
+import os
+import logging
+import math
+import operator
 import utils
-import collections, operator
 
 class V:
     def __init__(self, prob, prev):
@@ -17,11 +21,11 @@ class V:
         self.prev = prev
 
 def create_model(sentences):
-    word_tag_count = collections.defaultdict(lambda: collections.defaultdict(int))
-    word_tag_prob = collections.defaultdict(lambda: collections.defaultdict(int))
-    unitags = collections.defaultdict(int)
-    bitags = collections.defaultdict(lambda: collections.defaultdict(int))
-    bitag_prob = collections.defaultdict(lambda: collections.defaultdict(int))
+    word_tag_count = defaultdict(lambda: defaultdict(int))
+    word_tag_prob = defaultdict(lambda: defaultdict(int))
+    unitags = defaultdict(int)
+    bitags = defaultdict(lambda: defaultdict(int))
+    bitag_prob = defaultdict(lambda: defaultdict(int))
 
     tag_list = []
     for sentence in sentences:
@@ -47,7 +51,6 @@ def create_model(sentences):
             word_tag_prob[word][tag] = ((word_tag_count[word][tag]) / (unitags[tag]))
 
     # Populate tag list for matrix bounds
-    # LOOP GUCCI
     for tag in unitags:
         tag_list.append(tag)
 
@@ -55,6 +58,7 @@ def create_model(sentences):
     print "Prob. of ./.= ", word_tag_prob['.']['.']
     print "Count of ./UH=", word_tag_count['.']['UH']
     print "Prob. of ./UH=", word_tag_count['.']['UH']
+    
     return word_tag_prob, bitag_prob, unitags, tag_list, word_tag_count
 
 def predict_tags(sentences, model):
@@ -91,7 +95,7 @@ def predict_tags(sentences, model):
         last_tag_index = 1
         print "y= ", y
         for i, tags in enumerate(model[3]):
-            if(matrix[i][y].prob > maximum):
+            if matrix[i][y].prob > maximum:
                 print "last_tag_index now = ", i
                 last_tag_index = i
         tag_sequence.insert(0, model[3][i])
@@ -106,7 +110,7 @@ def predict_tags(sentences, model):
         # Going R->L in Viterbi matrix while also adding the tags to the main sequence
         for j in xrange(len(sentence) - 1, 0, -1):
             print "[", last_tag_index, "][", y, "] points back to: ", model[3][matrix[last_tag_index][j].prev]
-            if(j == 0):
+            if j == 0:
                 break
             tag_sequence.insert(0, model[3][matrix[last_tag_index][j].prev])
             
