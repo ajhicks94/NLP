@@ -1,0 +1,7 @@
+Usage: 
+
+Predict using bigrams
+$ python bigram_language_detector.py data/train/en/all_en.txt data/train/es/all_es.txt data/test
+
+Predict using trigrams
+$ python trigram_language_detector.py data/train/en/all_en.txt data/train/es/all_es.txt data/test
