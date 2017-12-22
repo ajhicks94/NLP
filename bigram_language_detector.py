@@ -71,11 +71,14 @@ def create_model(path):
                     unigrams[char] += 1
                     bigrams[char][token[i+1]] += 1
 
-    for prev_char, next_chars in bigrams.iteritems():
-        for next_char in next_chars:
-            bigram_prob[prev_char][next_char] = math.log10(((bigrams[prev_char][next_char] + 1) / (unigrams[prev_char] + 26)))
+    initial_prob(bigram_prob, bigrams, unigrams)
 
     return bigram_prob, unigrams
+
+def initial_prob(bigram_prob, bi, uni):
+    for x, second_chars in bi.iteritems():
+        for y in second_chars:
+            bigram_prob[x][y] = math.log10(((bi[x][y] + 1) / (uni[x] + 26)))
 
 def predict(file, model_en, model_es):
     prob_en = calc_prob(file, model_en)

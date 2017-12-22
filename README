@@ -1,0 +1,3 @@
+Usage: $ python bigram_language_detector.py data/train/en/all_en.txt data/train/es/all_es.txt data/test
+OR
+$ python trigram_language_detector.py data/train/en/all_en.txt data/train/es/all_es.txt data/test
