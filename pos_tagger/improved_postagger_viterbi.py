@@ -20,46 +20,58 @@ class V:
         self.prob = prob
         self.prev = prev
 
-def create_model(sentences):
-    word_tag_count = defaultdict(lambda: defaultdict(int))
-    word_tag_prob = defaultdict(lambda: defaultdict(int))
+def count_words_and_tags(sentences):
+
     unitags = defaultdict(int)
     bitags = defaultdict(lambda: defaultdict(int))
+    wt_count = defaultdict(lambda: defaultdict(int))
+
+    for sentence in sentences:
+
+        for i, token in enumerate(sentence, start=0):
+
+            unitags[token.tag] += 1
+            wt_count[token.tag][token.word] += 1
+
+            if i == len(sentence) - 1:
+                continue
+            else:
+                bitags[token.tag][sentence[i+1].tag] += 1
+
+    return wt_count, unitags, bitags
+
+def create_model(sentences):
+
+    counts = count_words_and_tags(sentences)
+
+    wt_count = counts[0]
+    unitags = counts[1]
+    bitags = counts[2]
+
+    wt_prob = defaultdict(lambda: defaultdict(int))
     bitag_prob = defaultdict(lambda: defaultdict(int))
 
     tag_list = []
-    for sentence in sentences:
-        unitags['<s>'] += 1
-        for i, token in enumerate(sentence):
-            if i == 0:
-                unitags[token.tag] += 1
-                bitags['<s>'][token.tag] += 1
-            if i == (len(sentence) - 1):
-                unitags[token.tag] += 1
-            else:
-                unitags[token.tag] += 1
-                bitags[token.tag][sentence[i+1].tag] += 1
-            word_tag_count[token.word][token.tag] += 1
 
     # Smooth and log probabilities (I was using log prob, but for some reason it was making my accuracy go down...I'm not sure why)
     for prev_tag, next_tags in bitags.iteritems():
         for next_tag in next_tags:
             bitag_prob[prev_tag][next_tag] = (((bitags[prev_tag][next_tag] + 1) / (unitags[prev_tag] + 36)))
 
-    for word, tags in word_tag_count.iteritems():
-        for tag in tags:
-            word_tag_prob[word][tag] = ((word_tag_count[word][tag]) / (unitags[tag]))
+    for tag, words in wt_count.iteritems():
+        for word in words:
+            wt_prob[tag][word] = ((wt_count[tag][word]) / (unitags[tag]))
 
     # Populate tag list for matrix bounds
     for tag in unitags:
         tag_list.append(tag)
 
-    print "Count of ./.= ", word_tag_count['.']['.']
-    print "Prob. of ./.= ", word_tag_prob['.']['.']
-    print "Count of ./UH=", word_tag_count['.']['UH']
-    print "Prob. of ./UH=", word_tag_count['.']['UH']
+    print "Count of ./.= ", wt_count['.']['.']
+    print "Prob. of ./.= ", wt_prob['.']['.']
+    print "Count of ./UH=", wt_count['.']['UH']
+    print "Prob. of ./UH=", wt_count['.']['UH']
     
-    return word_tag_prob, bitag_prob, unitags, tag_list, word_tag_count
+    return wt_prob, bitag_prob, unitags, tag_list, wt_count
 
 def predict_tags(sentences, model):
     # Create a matrix per sentence

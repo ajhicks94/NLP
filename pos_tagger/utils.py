@@ -17,6 +17,7 @@ def read_tokens(file):
     for l in f.readlines():
         tokens = l.split()
         sentence = []
+        sentence.append(Token('<s>','<s>'))
         for token in tokens:
             ## split only one time, e.g. pianist|bassoonist\/composer/NN
             try:
