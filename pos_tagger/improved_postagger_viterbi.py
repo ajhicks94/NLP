@@ -10,7 +10,6 @@ from collections import defaultdict
 import sys
 import os
 import logging
-import math
 import operator
 import utils
 
@@ -39,7 +38,7 @@ class HMM:
     def calc_prob(self):
         for x, next_tags in self.bitags.iteritems():
             for y in next_tags:
-                self.bitag_prob[x][y] = ((self.bitags[x][y] + 1) / (self.unitags[x] + 36))
+                self.bitag_prob[x][y] = (self.bitags[x][y] + 1) / (self.unitags[x] + 36)
 
         for tag, words in self.wt_count.iteritems():
             for word in words:
@@ -130,14 +129,12 @@ if __name__ == "__main__":
 
     model = HMM(training_sents)
 
-    #model = create_model(training_sents)
     ## read sentences again because predict_tags(...) rewrites the tags
     #sents = utils.read_tokens(training_file)
     #predictions = predict_tags(sents, model)
     #accuracy = utils.calc_accuracy(training_sents, predictions)
     #print "Accuracy in training [%s sentences]: %s" % (len(sents), accuracy)
 
-    ## read sentences again because predict_tags(...) rewrites the tags
     sents = utils.read_tokens(test_file)
     predictions = model.predict_tags(sents)
     accuracy = utils.calc_accuracy(test_sents, predictions)

@@ -36,12 +36,11 @@ def calc_accuracy(gold, system):
     for sent_i in range(len(gold)):
         assert len(gold[sent_i]) == len(system[sent_i]), "Different number of token in sentence:\n%s" % gold[sent_i]
         for gold_tok, system_tok in zip(gold[sent_i], system[sent_i]):
-            print "Expected: %4s Predicted: %4s" % (gold_tok.tag, system_tok.tag)
+            #print "Expected: %4s Predicted: %4s" % (gold_tok.tag, system_tok.tag)
             if gold_tok.tag == system_tok.tag:
                 tags_correct += 1
             num_tags += 1
 
-        print "\n"
     return (tags_correct / float(num_tags)) * 100
 
 if __name__ == "__main__":
