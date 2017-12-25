@@ -6,7 +6,6 @@ import utils
 import collections, operator
 
 def create_model(sentences):
-    ## YOUR CODE GOES HERE: create a model
     words = collections.defaultdict(lambda: collections.defaultdict(int))
 
     for sentence in sentences:
@@ -15,11 +14,8 @@ def create_model(sentences):
     return words
 
 def predict_tags(sentences, model):
-    ## YOU CODE GOES HERE: use the model to predict tags for sentences
-    ## Create the Viterbi matrix, fill the matrix, etc.
     for sentence in sentences:
         for token in sentence:
-            ## you can access token.word and self.tag (see utils.py for details)
             if (not model[token.word]):
                 token.tag = "NN"
             else:

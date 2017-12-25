@@ -24,6 +24,7 @@ class HMM:
 
         self.create_model(sentences)
 
+    # Get counts of tags, tags given tags, and words given tags
     def count_words_and_tags(self, sentences):
         for sentence in sentences:
             z = len(sentence) - 1
@@ -37,6 +38,7 @@ class HMM:
 
                 self.bitags[sentence[i].tag][sentence[i+1].tag] += 1
 
+    # Calculate probabilities
     def calc_prob(self):
         for x, next_tags in self.bitags.iteritems():
             for y in next_tags:
@@ -52,11 +54,12 @@ class HMM:
 
         for tag in self.unitags:
             self.tag_list.append(tag)
-
+    
     def viterbi(self, sentence):
         n = len(sentence)
         t = len(self.tag_list)
-        
+    
+        # 2D matrices with len(tag_list) rows and len(sentence) columns
         matrix = [[0.0 for x in xrange(n)] for y in xrange(t)]
         path = [[0 for x in xrange(n)] for y in xrange(t)]
         final_tags = []
@@ -64,6 +67,7 @@ class HMM:
         # Iterate top to bottom, left to right
         for j in xrange(n):
             for i in xrange(t):
+                # If unseen word/tag combination
                 if self.wt_prob[self.tag_list[i]][sentence[j].word] == 0:
                     self.wt_prob[self.tag_list[i]][sentence[j].word] = 0.00000005
                 if j == 0:
@@ -71,7 +75,8 @@ class HMM:
                 else:
                     maximum = -sys.maxint - 1
                     max_i = 0
-
+                    
+                    # argmax
                     for k in xrange(t):
                         temp = matrix[k][j-1] * self.bitag_prob[self.tag_list[k]][self.tag_list[i]]
                         if maximum < temp:
@@ -81,11 +86,11 @@ class HMM:
                     path[i][j] = max_i
                     matrix[i][j] = self.wt_prob[self.tag_list[i]][sentence[j].word] * maximum
 
-        # Get the max of the last column so we know where to start going back from
         last_col_max = -sys.maxint - 1
         prev_row = 2
         end = n - 1
 
+        # Get max of last column
         for i in xrange(t):
             if last_col_max < matrix[i][end]:
                 last_col_max = matrix[i][end]
@@ -93,6 +98,7 @@ class HMM:
 
         final_tags.append(self.tag_list[prev_row])
 
+        # Iterate in reverse, append tags
         for j in xrange(end, 1, -1):
             final_tags.append(self.tag_list[path[prev_row][j]])
             prev_row = path[prev_row][j]
