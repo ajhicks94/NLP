@@ -1,1 +1,2 @@
-python postagger_viterbi.py data_public/hw3_train data_public/hw3_heldout
+Viterbi:  python postagger_viterbi.py data_public/hw3_train data_public/hw3_heldout
+Baseline: python postagger_baseline.py data_public/hw3_train data_public/hw3_heldout
