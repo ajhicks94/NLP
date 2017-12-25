@@ -1,0 +1,1 @@
+python postagger_viterbi.py data_public/hw3_train data_public/hw3_heldout

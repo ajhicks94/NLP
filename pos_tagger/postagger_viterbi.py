@@ -1,7 +1,5 @@
 # Author: Anthony Hicks
 # Class : NLP
-# Instr : Eduardo Blanco
-# Date  : Too close to the due date
 
 #!/usr/bin/env python
 
@@ -9,123 +7,104 @@ from __future__ import division
 from optparse import OptionParser
 from collections import defaultdict
 
+import sys
 import os
 import logging
-import math
 import operator
 import utils
 
-class V:
-    def __init__(self, prob, prev):
-        self.prob = prob
-        self.prev = prev
+class HMM:
+    def __init__(self, sentences):
+        self.unitags = defaultdict(int)
+        self.bitags = defaultdict(lambda: defaultdict(int))
+        self.wt_count = defaultdict(lambda: defaultdict(int))
+        self.wt_prob = defaultdict(lambda: defaultdict(int))
+        self.bitag_prob = defaultdict(lambda: defaultdict(int))
+        self.tag_list = []
 
-def create_model(sentences):
-    word_tag_count = defaultdict(lambda: defaultdict(int))
-    word_tag_prob = defaultdict(lambda: defaultdict(int))
-    unitags = defaultdict(int)
-    bitags = defaultdict(lambda: defaultdict(int))
-    bitag_prob = defaultdict(lambda: defaultdict(int))
+        self.create_model(sentences)
 
-    tag_list = []
-    for sentence in sentences:
-        unitags['<s>'] += 1
-        for i, token in enumerate(sentence):
-            if i == 0:
-                unitags[token.tag] += 1
-                bitags['<s>'][token.tag] += 1
-            if i == (len(sentence) - 1):
-                unitags[token.tag] += 1
-            else:
-                unitags[token.tag] += 1
-                bitags[token.tag][sentence[i+1].tag] += 1
-            word_tag_count[token.word][token.tag] += 1
+    def count_words_and_tags(self, sentences):
+        for sentence in sentences:
+            for i in range(len(sentence) - 1):
+                self.unitags[sentence[i].tag] += 1
+                self.wt_count[sentence[i].tag][sentence[i].word] += 1
 
-    # Smooth and log probabilities (I was using log prob, but for some reason it was making my accuracy go down...I'm not sure why)
-    for prev_tag, next_tags in bitags.iteritems():
-        for next_tag in next_tags:
-            bitag_prob[prev_tag][next_tag] = (((bitags[prev_tag][next_tag] + 1) / (unitags[prev_tag] + 36)))
+                if i == len(sentence) - 1:
+                    continue
 
-    for word, tags in word_tag_count.iteritems():
-        for tag in tags:
-            word_tag_prob[word][tag] = ((word_tag_count[word][tag]) / (unitags[tag]))
+                self.bitags[sentence[i].tag][sentence[i+1].tag] += 1
 
-    # Populate tag list for matrix bounds
-    for tag in unitags:
-        tag_list.append(tag)
+    def calc_prob(self):
+        for x, next_tags in self.bitags.iteritems():
+            for y in next_tags:
+                self.bitag_prob[x][y] = (self.bitags[x][y] + 1) / (self.unitags[x] + 36)
 
-    print "Count of ./.= ", word_tag_count['.']['.']
-    print "Prob. of ./.= ", word_tag_prob['.']['.']
-    print "Count of ./UH=", word_tag_count['.']['UH']
-    print "Prob. of ./UH=", word_tag_count['.']['UH']
-    
-    return word_tag_prob, bitag_prob, unitags, tag_list, word_tag_count
+        for tag, words in self.wt_count.iteritems():
+            for word in words:
+                self.wt_prob[tag][word] = self.wt_count[tag][word] / self.unitags[tag]
 
-def predict_tags(sentences, model):
-    # Create a matrix per sentence
-    counter = 0
-    for sentence in sentences:
-        matrix = [[V(0,-1) for x in range(len(sentence))] for x in range(len(model[3]))]
-        # We complete each column first (Top to Bottom, Left to Right)
-        for j, token in enumerate(sentence):
-            for i, tags in enumerate(model[3]):
-                # This is where we would check for unknown words, I did a poor job at that
-                #if(model[4][token.word] == 0):
-                #    model[0][token.word][tags] = model[2][tags]
-                # Fill the first column
-                if(j == 0):
-                    matrix[i][j].prob = model[0][token.word][tags] * model[1]['<s>'][tags]
+    def create_model(self, sentences):
+        self.count_words_and_tags(sentences)
+        self.calc_prob()
+
+        for tag in self.unitags:
+            self.tag_list.append(tag)
+
+    def viterbi(self, sentence):
+        matrix = [[0.0 for x in range(len(sentence))] for y in range(len(self.tag_list))]
+        path = [[0 for x in range(len(sentence))] for y in range(len(self.tag_list))]
+
+        # Iterate top to bottom, left to right
+        for j in range(len(sentence)):
+            for i in range(len(self.tag_list)):
+                if self.wt_prob[self.tag_list[i]][sentence[j].word] == 0:
+                    self.wt_prob[self.tag_list[i]][sentence[j].word] = 0.00000005
+                if j == 0:
+                    matrix[i][j] = self.wt_prob[self.tag_list[i]][sentence[j].word] * self.bitag_prob['<s>'][self.tag_list[i]]
                 else:
-                    maximum = 0
-                    back = 0
-                    # argmax()
-                    for k, t in enumerate(model[3]):
-                        temp = (matrix[k][j-1].prob * model[1][t][tags])
-                        if(temp > maximum):
+                    maximum = -sys.maxint - 1
+                    max_i = 0
+                    max_j = 0
+
+                    for k in range(len(self.tag_list)):
+                        temp = matrix[k][j-1] * self.bitag_prob[self.tag_list[k]][self.tag_list[i]]
+                        if maximum < temp:
                             maximum = temp
-                            back = k
-                    # Fill the cell
-                    matrix[i][j].prob = model[0][token.word][tags] * maximum
-                    matrix[i][j].prev = back
+                            max_i = k
 
-        # Find the cell in V matrix to start with
-        y = len(sentence) - 1
-        tag_sequence = []
-# THIS IS PART OF THE PROBLEM
-        last_tag_index = 1
-        print "y= ", y
-        for i, tags in enumerate(model[3]):
-            if matrix[i][y].prob > maximum:
-                print "last_tag_index now = ", i
-                last_tag_index = i
-        tag_sequence.insert(0, model[3][i])
-        print "Starting at [", last_tag_index, "][", y, "]"
-        #print "Sentence: ",
-        #for words in sentence:
-        #    print words.word, " ",
+                    path[i][j] = max_i
+                    matrix[i][j] = self.wt_prob[self.tag_list[i]][sentence[j].word] * maximum
+        final_tags = []
 
-        print "\nExpected tags: ",
-        for words in sentence:
-            print words.tag, " ",
-        # Going R->L in Viterbi matrix while also adding the tags to the main sequence
-        for j in xrange(len(sentence) - 1, 0, -1):
-            print "[", last_tag_index, "][", y, "] points back to: ", model[3][matrix[last_tag_index][j].prev]
-            if j == 0:
-                break
-            tag_sequence.insert(0, model[3][matrix[last_tag_index][j].prev])
-            
-            last_tag_index = matrix[last_tag_index][j].prev
+        # Get the max of the last column so we know where to start going back from
+        last_col_max = -sys.maxint - 1
+        last_col_max_i = 2
+        z = len(sentence) - 1
 
-        # Change tags
-        print "\nAssigned tags: ",
-        for j, token in enumerate(sentence):
-            token.tag = tag_sequence[j]
-            print tag_sequence[j], " ",
-        print "\n"
-        #if counter == 2:
-        #    break
-        counter += 1
-    return sentences
+        for i in range(len(self.tag_list)):
+            if last_col_max < matrix[i][z]:
+                last_col_max = matrix[i][z]
+                last_col_max_i = i
+
+        final_tags.append(self.tag_list[last_col_max_i])
+
+        for j in range(z, 1, -1):
+            final_tags.append(self.tag_list[path[last_col_max_i][j]])
+            last_col_max_i = path[last_col_max_i][j]
+
+        final_tags.append('<s>')
+        final_tags.reverse()
+
+        return final_tags
+
+    def predict_tags(self, sentences):
+        for sentence in sentences:
+            final_tags = []
+            final_tags = self.viterbi(sentence)
+            for i, token in enumerate(sentence):
+                token.tag = final_tags[i]
+        return sentences
 
 if __name__ == "__main__":
     usage = "usage: %prog [options] GOLD TEST"
@@ -148,15 +127,15 @@ if __name__ == "__main__":
     test_file = args[1]
     test_sents = utils.read_tokens(test_file)
 
-    model = create_model(training_sents)
+    model = HMM(training_sents)
+
     ## read sentences again because predict_tags(...) rewrites the tags
     #sents = utils.read_tokens(training_file)
     #predictions = predict_tags(sents, model)
     #accuracy = utils.calc_accuracy(training_sents, predictions)
     #print "Accuracy in training [%s sentences]: %s" % (len(sents), accuracy)
 
-    ## read sentences again because predict_tags(...) rewrites the tags
     sents = utils.read_tokens(test_file)
-    predictions = predict_tags(sents, model)
+    predictions = model.predict_tags(sents)
     accuracy = utils.calc_accuracy(test_sents, predictions)
     print "Accuracy in testing [%s sentences]: %s" % (len(sents), accuracy)
