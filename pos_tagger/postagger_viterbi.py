@@ -27,13 +27,13 @@ class HMM:
     # Get counts of tags, tags given tags, and words given tags
     def count_words_and_tags(self, sentences):
         for sentence in sentences:
-            z = len(sentence) - 1
+            n = len(sentence) - 1
 
-            for i in xrange(z):
+            for i in xrange(n):
                 self.unitags[sentence[i].tag] += 1
                 self.wt_count[sentence[i].tag][sentence[i].word] += 1
 
-                if i == z:
+                if i == n:
                     continue
 
                 self.bitags[sentence[i].tag][sentence[i+1].tag] += 1
@@ -47,14 +47,20 @@ class HMM:
         for tag, words in self.wt_count.iteritems():
             for word in words:
                 self.wt_prob[tag][word] = self.wt_count[tag][word] / self.unitags[tag]
-
+    
+    # Create the hmm
     def create_model(self, sentences):
+        # Obtain counts of P(word/tag) and P(tag|tag)
         self.count_words_and_tags(sentences)
+
+        # Calculate probabilities using above counts
         self.calc_prob()
 
+        # Populate list of tags
         for tag in self.unitags:
             self.tag_list.append(tag)
     
+    # Use viterbi's algorithm to return most likely sequence of tags
     def viterbi(self, sentence):
         n = len(sentence)
         t = len(self.tag_list)
@@ -67,9 +73,12 @@ class HMM:
         # Iterate top to bottom, left to right
         for j in xrange(n):
             for i in xrange(t):
+
                 # If unseen word/tag combination
                 if self.wt_prob[self.tag_list[i]][sentence[j].word] == 0:
                     self.wt_prob[self.tag_list[i]][sentence[j].word] = 0.00000005
+
+                # First column
                 if j == 0:
                     matrix[i][j] = self.wt_prob[self.tag_list[i]][sentence[j].word] * self.bitag_prob['<s>'][self.tag_list[i]]
                 else:
@@ -83,11 +92,14 @@ class HMM:
                             maximum = temp
                             max_i = k
 
+                    # Keep track of the backpointer
                     path[i][j] = max_i
                     matrix[i][j] = self.wt_prob[self.tag_list[i]][sentence[j].word] * maximum
 
         last_col_max = -sys.maxint - 1
-        prev_row = 2
+        prev_row = 0
+
+        # Index of last column
         end = n - 1
 
         # Get max of last column
@@ -98,7 +110,7 @@ class HMM:
 
         final_tags.append(self.tag_list[prev_row])
 
-        # Iterate in reverse, append tags
+        # Iterate in reverse from penultimate column,  append tags
         for j in xrange(end, 1, -1):
             final_tags.append(self.tag_list[path[prev_row][j]])
             prev_row = path[prev_row][j]
